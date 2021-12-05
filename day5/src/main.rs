@@ -1,5 +1,8 @@
+// use std::cmp;
+use std::ops;
+
 #[derive(Debug)]
-struct Point(usize,usize);
+struct Point(i32,i32);
 #[derive(Debug)]
 struct Line(Point,Point);
 
@@ -8,33 +11,52 @@ impl Line {
         let Point(startx, starty) = self.0;
         let Point(stopx, stopy) = self.1;
 
-        if startx == stopx {
-            if starty < stopy {
-                return (starty..=stopy).map(|y| Point(startx, y)).collect()
-            }
-            return (stopy..=starty).map(|y| Point(startx, y)).collect()
+        let mut slopex = 0;
+        let mut slopey = 0;
+        if startx > stopx {
+            slopex = -1;
+        }
+        if startx < stopx {
+            slopex = 1;
+        }
+        if starty > stopy {
+            slopey = -1;
+        }
+        if starty < stopy {
+            slopey = 1;
         }
 
-        if starty == stopy {
-            if startx < stopx {
-                return (startx..=stopx).map(|x| Point(x, starty)).collect()
-            }
-            return (stopx..=startx).map(|x| Point(x, starty)).collect()
+        let mut points: Vec<Point> = vec![];
+        points.push(Point(startx, starty));
+
+        let mut p = Point(startx, starty);
+
+        while p.0 != stopx || p.1 != stopy {
+            p = p + Point(slopex, slopey);
+            points.push(Point(p.0, p.1));
         }
 
-        vec![]
+        return points;
+    }
+}
+
+impl ops::Add<Point> for Point {
+    type Output = Point;
+
+    fn add(self, rhs: Point) -> Point {
+        Point(self.0+rhs.0, self.1+rhs.1)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
     #[test]
     fn test_points() {
         let line1 = Line(Point(280,66),Point(514,66)).points();
         let line2 = Line(Point(514,66),Point(280,66)).points();
+        println!("LINES: {} | {}", line1.len(), line2.len());
         assert_eq!(line1.len(), line2.len());
         assert_eq!(line1.len(), 235);
 
@@ -47,7 +69,37 @@ mod tests {
         let line2 = Line(Point(68,68),Point(66,66)).points();
         assert_eq!(line1.len(), line2.len());
         assert_eq!(line1.len(), 3);
+
+        let start = line1.first().unwrap();
+        assert_eq!(start.0, 66);
+        assert_eq!(start.1, 66);
+        let middle = &line1[1];
+        assert_eq!(middle.0, 67);
+        assert_eq!(middle.1, 67);
+        let stop = line1.last().unwrap();
+        assert_eq!(stop.0, 68);
+        assert_eq!(stop.1, 68);
     }
+
+    #[test]
+    fn test_add() {
+        let point = Point(2,3);
+        let new = point+Point(5,2);
+        assert_eq!(new.0, 7);
+        assert_eq!(new.1, 5);
+    }
+
+    #[test]
+    fn test_diagonal() {
+        let points = Line(Point(941,230),Point(322,849)).points();
+
+        assert_eq!(points.len(), 620);
+        assert_eq!(points[0].0, 941);
+        assert_eq!(points[0].1, 230);
+        assert_eq!(points[619].0, 322);
+        assert_eq!(points[619].1, 849);
+    }
+
 }
 
 fn main() {
@@ -59,14 +111,14 @@ fn main() {
     for line in input {
         for point in line.points() {
             let Point(x,y) = point;
-            world[x][y] += 1;
-            if world[x][y] == 2 {
+            world[x as usize][y as usize] += 1;
+            if world[x as usize][y as usize] == 2 {
                 crossings += 1;
             }
         }
     }
 
-    println!("puzzle1: {}", crossings)
+    println!("answer: {}", crossings)
 }
 
 fn input() -> Vec<Line> {
