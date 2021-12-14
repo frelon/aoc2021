@@ -4,81 +4,64 @@ fn main() {
     let input = input();
     let mut rules = HashMap::new();
 
-    let pairs = input[0];
+    let template = input[0];
 
     for line in input.iter().skip(2) {
         let mut split = line.split(" -> ");
         rules.insert(split.next().unwrap(), split.next().unwrap());
     }
 
-    let mut state = String::from(pairs);
-    for _ in 1..=10 {
-        state = step(state, &rules);
-    }
+    let mut pairs = HashMap::new();
+    let mut counts = HashMap::new();
 
-    let mut map = HashMap::new();
-    for ch in state.chars() {
-        let count = map.entry(ch).or_insert(0);
-        *count += 1;
-    }
+    let chars:Vec<char> = template.chars().collect();
 
-    let mut min = 10000;
-    let mut max = 0;
-    for (_, count) in map {
-        if count < min {
-            min = count;
-        }
-
-        if count > max {
-            max = count;
-        }
-    }
-
-    println!("answer1: {}", max-min);
-}
-
-fn step(pairs:String,rules:&HashMap<&str,&str>) -> String {
-    let mut result = String::new();
-    let chars:Vec<char> = pairs.chars().collect();
     for w in chars[..].windows(2) {
         let mut s = String::from(w[0]);
         s.push(w[1]);
 
-        result.push(w[0]);
+        *pairs.entry(s).or_insert(0) += 1;
+        *counts.entry(w[0]).or_insert(0) += 1;
+        *counts.entry(w[1]).or_insert(0) += 1;
+    }
 
-        match rules.get(&s[..]) {
-            Some(rule) => { result.push_str(rule); },
+    for _ in 1..=40 {
+        step(&mut pairs, &rules, &mut counts);
+    }
+
+    let min = counts.values().min().unwrap();
+    let max = counts.values().max().unwrap();
+
+    println!("answer: {}",max-min)
+}
+
+fn step(pairs:&mut HashMap<String,u64>,rules:&HashMap<&str,&str>,chars:&mut HashMap<char,u64>) {
+    for (pair,count) in pairs.clone().iter() {
+        if count == &0 {
+            continue;
+        }
+
+        match rules.get(&pair[..]) {
+            Some(rule) => {
+                *pairs.entry(pair.to_string()).or_insert(0) -= count;
+
+                let mut pair1 = String::from(&pair[0..1]);
+                pair1.push_str(rule);
+                *pairs.entry(pair1).or_insert(0) += count;
+
+                let mut pair2 = String::from(*rule);
+                pair2.push_str(&pair[1..2]);
+                *pairs.entry(pair2).or_insert(0) += count;
+
+                *chars.entry(rule.chars().nth(0).unwrap()).or_insert(0) += count;
+            },
             None => {},
         }
     }
-
-    result.push(*chars.last().unwrap());
-
-    result
 }
 
 
 fn input() -> Vec<&'static str> {
-    // vec![
-// "NNCB",
-// "",
-// "CH -> B",
-// "HH -> N",
-// "CB -> H",
-// "NH -> C",
-// "HB -> C",
-// "HC -> B",
-// "HN -> C",
-// "NN -> C",
-// "BH -> H",
-// "NC -> B",
-// "NB -> B",
-// "BN -> B",
-// "BB -> N",
-// "BC -> B",
-// "CC -> N",
-// "CN -> C",
-    // ]
 vec![
 "VCOPVNKPFOOVPVSBKCOF",
 "",
@@ -184,3 +167,5 @@ vec![
 "VF -> P",
 ]
 }
+
+// 10002813279338 too high
